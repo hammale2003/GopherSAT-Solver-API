@@ -1,6 +1,6 @@
 #  GopherSAT Solver API
 
-API FastAPI complète pour résoudre des problèmes SAT, de coloriage de graphe et de Sudoku avec **visualisations graphiques**.
+API FastAPI complète pour résoudre des problèmes SAT, de coloriage de graphe,Sokoban et de Sudoku avec **visualisations graphiques**.
 
 ##  Installation Rapide
 
