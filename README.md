@@ -71,9 +71,6 @@ POST /sudoku
 ```bash
 # Générer les images PNG
 python test_visualizations.py
-
-# Tests spécifiques
-python test_graph_coloring.py
 python test_sudoku.py
 ```
 
