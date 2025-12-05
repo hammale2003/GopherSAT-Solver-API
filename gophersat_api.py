@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -8,8 +8,10 @@ import tempfile
 import os
 from graph_coloring import GraphColoringSAT
 from sudoku_solver import SudokuSAT
+from sokoban_solver import SokobanSAT
+from sokoban_simulator import SokobanSimulator
 
-app = FastAPI(title="GopherSAT Solver API - Coloriage de Graphe & Sudoku")
+app = FastAPI(title="GopherSAT Solver API - SAT Problems Solver")
 
 # CORS pour permettre les requêtes cross-origin
 app.add_middleware(
@@ -72,6 +74,30 @@ class SudokuRequest(BaseModel):
             }
         }
 
+class SokobanRequest(BaseModel):
+    """
+    Requête pour résoudre un Sokorridor
+    
+    initial_state: État initial {worker: int, boxes: List[int]}
+    goals: Positions des objectifs
+    T: Horizon temporel (optionnel, défaut 15)
+    num_cells: Nombre de cases (optionnel, défaut 11)
+    """
+    initial_state: dict
+    goals: List[int]
+    T: int = 15
+    num_cells: int = 11
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "initial_state": {"worker": 6, "boxes": [2, 9]},
+                "goals": [1, 10],
+                "T": 15,
+                "num_cells": 11
+            }
+        }
+
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
@@ -80,12 +106,14 @@ class SudokuRequest(BaseModel):
 async def root():
     """Page d'accueil de l'API"""
     return {
-        "message": "GopherSAT Solver API - Coloriage de Graphe & Sudoku",
-        "description": "API pour résoudre des problèmes SAT, de coloriage de graphe et de Sudoku",
+        "message": "GopherSAT Solver API - SAT Problems Solver",
+        "description": "API pour résoudre des problèmes SAT: coloriage de graphe, Sudoku, et Sokoban",
         "endpoints": {
             "POST /solve": "Résoudre un fichier CNF",
             "POST /graph-coloring": "Coloriage de graphe - prend V, E, K et retourne φ",
             "POST /sudoku": "Résoudre un Sudoku - prend une grille 9x9",
+            "POST /sokoban": "Résoudre un Sokorridor - planification à horizon fini",
+            "GET /visualizer": "Interface web pour visualiser les résultats",
             "GET /docs": "Documentation interactive Swagger",
             "GET /health": "Vérifier l'état de GopherSAT"
         },
@@ -97,9 +125,31 @@ async def root():
             },
             "sudoku": {
                 "grid": "9x9 array with 0 for empty cells"
+            },
+            "sokoban": {
+                "initial_state": {"worker": 6, "boxes": [2, 9]},
+                "goals": [1, 10],
+                "T": 15
             }
         }
     }
+
+@app.get("/visualizer", response_class=HTMLResponse)
+async def visualizer():
+    """Sert l'interface de visualisation HTML"""
+    html_file = os.path.join(os.path.dirname(__file__), "visualizer.html")
+    if os.path.exists(html_file):
+        with open(html_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        return """
+        <!DOCTYPE html>
+        <html><body>
+        <h1>Erreur</h1>
+        <p>Le fichier visualizer.html n'a pas été trouvé.</p>
+        <p>Assurez-vous que visualizer.html est dans le même répertoire que gophersat_api.py</p>
+        </body></html>
+        """
 
 @app.post("/solve")
 async def solve_cnf(file: UploadFile = File(...)):
@@ -310,6 +360,85 @@ async def solve_sudoku(request: SudokuRequest):
     # Vérifier s'il y a une erreur
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
+    
+    return JSONResponse(content=result)
+
+@app.post("/sokoban")
+async def solve_sokoban(request: SokobanRequest):
+    """
+    Résout un problème de Sokorridor (planification)
+    
+    Args:
+        initial_state: État initial {worker: int, boxes: List[int]}
+        goals: Positions des objectifs
+        T: Horizon temporel (défaut 15)
+        num_cells: Nombre de cases (défaut 11)
+        
+    Returns:
+        - satisfiable: bool - si un plan existe
+        - plan: List[Tuple[int, str]] - séquence d'actions
+        - visualization: List[str] - images de l'exécution
+        
+    Example:
+        {
+            "initial_state": {"worker": 6, "boxes": [2, 9]},
+            "goals": [1, 10],
+            "T": 15,
+            "num_cells": 11
+        }
+        
+        État initial: #. $   @  $.#
+        But: déplacer les caisses sur les objectifs (positions 1 et 10)
+    """
+    # Vérifier que GopherSAT existe
+    if not os.path.exists(GOPHERSAT_PATH):
+        raise HTTPException(
+            status_code=500, 
+            detail=f"GopherSAT non trouvé à : {GOPHERSAT_PATH}"
+        )
+    
+    # Créer le solveur
+    solver = SokobanSAT(GOPHERSAT_PATH)
+    
+    # Résoudre
+    result = solver.solve(
+        initial_state=request.initial_state,
+        goals=request.goals,
+        T=request.T,
+        num_cells=request.num_cells
+    )
+    
+    # Vérifier s'il y a une erreur
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    
+    # Si satisfiable, simuler et visualiser
+    if result["satisfiable"]:
+        simulator = SokobanSimulator(num_cells=request.num_cells)
+        simulator.set_initial_state(
+            request.initial_state['worker'],
+            request.initial_state['boxes'],
+            request.goals
+        )
+        
+        # Exécuter le plan
+        plan_result = simulator.execute_plan(result['plan'])
+        
+        # Générer les visualisations
+        try:
+            visualizations = simulator.visualize_plan_execution(plan_result)
+            animated_gif = simulator.create_animated_gif(plan_result, duration=500)
+            result['visualizations'] = visualizations
+            result['animated_gif'] = animated_gif
+            result['simulation'] = {
+                'success': plan_result['success'],
+                'message': plan_result['message'],
+                'goal_reached': plan_result['goal_reached']
+            }
+        except Exception as e:
+            result['visualizations'] = None
+            result['animated_gif'] = None
+            result['simulation'] = {'error': str(e)}
     
     return JSONResponse(content=result)
 

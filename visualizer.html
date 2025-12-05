@@ -13,7 +13,7 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0048ff 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -222,6 +222,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('graph')">Coloriage de Graphe</button>
             <button class="tab" onclick="switchTab('sudoku')">Sudoku</button>
+            <button class="tab" onclick="switchTab('sokoban')">Sokoban</button>
         </div>
         
         <!-- Coloriage de Graphe -->
@@ -258,6 +259,24 @@
             </div>
             
             <div class="result" id="sudokuResult"></div>
+        </div>
+        
+        <!-- Sokoban -->
+        <div id="sokoban" class="tab-content">
+            <div class="info">
+                <strong>Format JSON:</strong> {"initial_state": {"worker": 6, "boxes": [2, 9]}, "goals": [1, 10], "T": 15}
+            </div>
+            
+            <textarea id="sokobanInput">{"initial_state": {"worker": 6, "boxes": [2, 9]}, "goals": [1, 10], "T": 15, "num_cells": 11}</textarea>
+            
+            <button onclick="solveSokoban()">🎮 Résoudre et Animer</button>
+            
+            <div class="loading" id="sokobanLoading">
+                <div class="spinner"></div>
+                <p>Planification en cours...</p>
+            </div>
+            
+            <div class="result" id="sokobanResult"></div>
         </div>
     </div>
     
@@ -406,6 +425,97 @@
                         
                         <h3>Visualisation:</h3>
                         <img src="data:image/png;base64,${json.plot}" alt="Sudoku résolu">
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <strong>✗ Pas de solution</strong><br>
+                            ${json.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `
+                    <div class="error">
+                        <strong>Erreur:</strong><br>
+                        ${error.message}<br><br>
+                        Vérifiez que l'API est lancée sur ${API_URL}
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+        
+        async function solveSokoban() {
+            const input = document.getElementById('sokobanInput').value;
+            const loading = document.getElementById('sokobanLoading');
+            const result = document.getElementById('sokobanResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const data = JSON.parse(input);
+                const response = await fetch(`${API_URL}/sokoban`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.satisfiable) {
+                    const planHtml = json.plan.map(([t, action]) => {
+                        const symbols = {
+                            'move_right': '→',
+                            'move_left': '←',
+                            'push_right': '⇒',
+                            'push_left': '⇐'
+                        };
+                        return `<li>t=${t}: ${symbols[action] || action}</li>`;
+                    }).join('');
+                    
+                    result.innerHTML = `
+                        <div class="${json.simulation.goal_reached ? 'success' : 'error'}">
+                            <strong>${json.simulation.goal_reached ? '✓' : '⚠'} ${json.simulation.message}</strong>
+                        </div>
+                        
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.plan_length}</div>
+                                <div class="stat-label">Étapes</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_variables}</div>
+                                <div class="stat-label">Variables SAT</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_clauses}</div>
+                                <div class="stat-label">Clauses SAT</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.horizon}</div>
+                                <div class="stat-label">Horizon T</div>
+                            </div>
+                        </div>
+                        
+                        <h3>🎬 Animation du Plan:</h3>
+                        ${json.animated_gif ? 
+                            `<img src="data:image/gif;base64,${json.animated_gif}" alt="Sokoban animé" style="max-width:100%; border:2px solid #667eea; border-radius:10px;">` :
+                            '<p>Pas d\'animation disponible</p>'
+                        }
+                        
+                        <h3>Plan d'Actions:</h3>
+                        <ol style="text-align: left; display: inline-block; max-height: 300px; overflow-y: auto;">${planHtml}</ol>
                     `;
                 } else {
                     result.innerHTML = `
