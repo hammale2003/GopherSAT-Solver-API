@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GopherSAT Solver - Visualisations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 10px 10px 0 0;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+            resize: vertical;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .error {
+            background: #fee;
+            border-left: 4px solid #f44;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .success {
+            background: #efe;
+            border-left: 4px solid #4f4;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 GopherSAT Solver</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('graph')">Coloriage de Graphe</button>
+            <button class="tab" onclick="switchTab('sudoku')">Sudoku</button>
+        </div>
+        
+        <!-- Coloriage de Graphe -->
+        <div id="graph" class="tab-content active">
+            <div class="info">
+                <strong>Format JSON:</strong> {"V": ["A","B","C"], "E": [["A","B"], ["B","C"]], "K": ["r","v","b"]}
+            </div>
+            
+            <textarea id="graphInput">{"V": ["A", "B", "C", "D"], "E": [["A", "B"], ["A", "C"], ["B", "C"], ["B", "D"], ["C", "D"]], "K": ["r", "v", "b"]}</textarea>
+            
+            <button onclick="solveGraph()">🎨 Résoudre et Visualiser</button>
+            
+            <div class="loading" id="graphLoading">
+                <div class="spinner"></div>
+                <p>Résolution en cours...</p>
+            </div>
+            
+            <div class="result" id="graphResult"></div>
+        </div>
+        
+        <!-- Sudoku -->
+        <div id="sudoku" class="tab-content">
+            <div class="info">
+                <strong>Format JSON:</strong> {"grid": [[5,3,0,0,7,0,0,0,0], ...]} (9 lignes de 9 chiffres, 0 = vide)
+            </div>
+            
+            <textarea id="sudokuInput">{"grid": [[5,3,0,0,7,0,0,0,0], [6,0,0,1,9,5,0,0,0], [0,9,8,0,0,0,0,6,0], [8,0,0,0,6,0,0,0,3], [4,0,0,8,0,3,0,0,1], [7,0,0,0,2,0,0,0,6], [0,6,0,0,0,0,2,8,0], [0,0,0,4,1,9,0,0,5], [0,0,0,0,8,0,0,7,9]]}</textarea>
+            
+            <button onclick="solveSudoku()">🧩 Résoudre et Visualiser</button>
+            
+            <div class="loading" id="sudokuLoading">
+                <div class="spinner"></div>
+                <p>Résolution en cours...</p>
+            </div>
+            
+            <div class="result" id="sudokuResult"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        
+        function switchTab(tab) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+        }
+        
+        async function solveGraph() {
+            const input = document.getElementById('graphInput').value;
+            const loading = document.getElementById('graphLoading');
+            const result = document.getElementById('graphResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const data = JSON.parse(input);
+                const response = await fetch(`${API_URL}/graph-coloring`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.satisfiable) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <strong>✓ Coloriage trouvé!</strong><br>
+                            ${json.message}
+                        </div>
+                        
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_vertices}</div>
+                                <div class="stat-label">Sommets</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_edges}</div>
+                                <div class="stat-label">Arêtes</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.colors_used}</div>
+                                <div class="stat-label">Couleurs utilisées</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_clauses}</div>
+                                <div class="stat-label">Clauses SAT</div>
+                            </div>
+                        </div>
+                        
+                        <h3>Visualisation du Graphe Colorié:</h3>
+                        <img src="data:image/png;base64,${json.plot}" alt="Graphe colorié">
+                        
+                        <h3>Solution φ:</h3>
+                        <pre>${JSON.stringify(json.phi, null, 2)}</pre>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <strong>✗ Pas de solution</strong><br>
+                            ${json.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `
+                    <div class="error">
+                        <strong>Erreur:</strong><br>
+                        ${error.message}<br><br>
+                        Vérifiez que l'API est lancée sur ${API_URL}
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+        
+        async function solveSudoku() {
+            const input = document.getElementById('sudokuInput').value;
+            const loading = document.getElementById('sudokuLoading');
+            const result = document.getElementById('sudokuResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const data = JSON.parse(input);
+                const response = await fetch(`${API_URL}/sudoku`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.satisfiable) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <strong>✓ Sudoku résolu!</strong><br>
+                            ${json.message}
+                        </div>
+                        
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.filled_cells}</div>
+                                <div class="stat-label">Cases initiales</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.empty_cells}</div>
+                                <div class="stat-label">Cases résolues</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_variables}</div>
+                                <div class="stat-label">Variables SAT</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nb_clauses}</div>
+                                <div class="stat-label">Clauses SAT</div>
+                            </div>
+                        </div>
+                        
+                        <h3>Visualisation:</h3>
+                        <img src="data:image/png;base64,${json.plot}" alt="Sudoku résolu">
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <strong>✗ Pas de solution</strong><br>
+                            ${json.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `
+                    <div class="error">
+                        <strong>Erreur:</strong><br>
+                        ${error.message}<br><br>
+                        Vérifiez que l'API est lancée sur ${API_URL}
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
