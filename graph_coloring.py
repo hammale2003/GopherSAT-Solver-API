@@ -104,8 +104,6 @@ class GraphColoringSAT:
         # Ligne p cnf
         cnf_lines.append(f"p cnf {nb_variables} {nb_clauses}")
         
-        # Ajouter TOUTES les clauses SANS commentaires intermédiaires
-        # (GopherSAT n'accepte pas les commentaires après la ligne p cnf)
         for clause in clauses:
             clause_str = " ".join(map(str, clause)) + " 0"
             cnf_lines.append(clause_str)
@@ -335,6 +333,6 @@ class GraphColoringSAT:
         except Exception as e:
             return {"error": f"Erreur lors de l'exécution: {str(e)}"}
         finally:
-            # Nettoyer le fichier temporaire
+          
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
