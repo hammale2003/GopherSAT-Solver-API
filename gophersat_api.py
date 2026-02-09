@@ -1,8 +1,9 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Dict, Tuple
 import subprocess
 import tempfile
 import os
@@ -10,6 +11,9 @@ from graph_coloring import GraphColoringSAT
 from sudoku_solver import SudokuSAT
 from sokoban_solver import SokobanSAT
 from sokoban_simulator import SokobanSimulator
+from maze_solver import Maze, MazeSolver, create_example_maze
+from sokorridor_search import SokorridorState, SokorridorSearchSolver
+from puzzle_solver import PuzzleState, AStarSolver
 
 app = FastAPI(title="GopherSAT Solver API - SAT Problems Solver")
 
@@ -451,6 +455,129 @@ async def health_check():
         "gophersat_path": GOPHERSAT_PATH,
         "gophersat_found": gophersat_exists
     }
+
+# ============================================================================
+# SÉANCE 3 - PLANIFICATION ET RECHERCHE
+# ============================================================================
+
+@app.get("/maze/{algorithm}")
+async def solve_maze(algorithm: str):
+    """
+    Résout le labyrinthe avec l'algorithme spécifié
+    
+    Algorithmes disponibles : bfs, dfs, iddfs
+    """
+    if algorithm not in ['bfs', 'dfs', 'iddfs']:
+        raise HTTPException(status_code=400, detail="Algorithme invalide. Utilisez : bfs, dfs, iddfs")
+    
+    try:
+        maze = create_example_maze()
+        solver = MazeSolver(maze)
+        
+        if algorithm == 'bfs':
+            path = solver.bfs()
+        elif algorithm == 'dfs':
+            path = solver.dfs()
+        else:  # iddfs
+            path = solver.iddfs()
+        
+        return {
+            "algorithm": algorithm,
+            "path": path,
+            "stats": solver.stats,
+            "success": path is not None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class SokorridorRequest(BaseModel):
+    """Requête pour Sokorridor"""
+    worker: int
+    boxes: List[int]
+    goals: List[int]
+
+
+@app.post("/sokorridor/{algorithm}")
+async def solve_sokorridor(algorithm: str, request: SokorridorRequest):
+    """
+    Résout le Sokorridor avec l'algorithme spécifié
+    
+    Algorithmes disponibles : bfs, iddfs
+    """
+    if algorithm not in ['bfs', 'iddfs']:
+        raise HTTPException(status_code=400, detail="Algorithme invalide. Utilisez : bfs, iddfs")
+    
+    try:
+        initial = SokorridorState(request.worker, request.boxes, num_cells=11)
+        solver = SokorridorSearchSolver(initial, request.goals)
+        
+        if algorithm == 'bfs':
+            solution = solver.bfs()
+        else:  # iddfs
+            solution = solver.iddfs()
+        
+        return {
+            "algorithm": algorithm,
+            "solution": solution,
+            "stats": solver.stats,
+            "success": solution is not None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PuzzleRequest(BaseModel):
+    """Requête pour le Taquin"""
+    initial: List[List[int]]
+    goal: List[List[int]]
+
+
+@app.post("/puzzle/{heuristic}")
+async def solve_puzzle(heuristic: str, request: PuzzleRequest):
+    """
+    Résout le Taquin avec A* et l'heuristique spécifiée
+    
+    Heuristiques disponibles : manhattan, misplaced, euclidean
+    """
+    if heuristic not in ['manhattan', 'misplaced', 'euclidean']:
+        raise HTTPException(status_code=400, detail="Heuristique invalide. Utilisez : manhattan, misplaced, euclidean")
+    
+    try:
+        initial = PuzzleState(request.initial)
+        goal = PuzzleState(request.goal)
+        
+        solver = AStarSolver(initial, goal, heuristic=heuristic)
+        solution = solver.solve()
+        
+        # Convertir la solution en format sérialisable
+        if solution:
+            solution_serializable = [
+                (None, action) for _, action in solution  # On garde juste les actions
+            ]
+        else:
+            solution_serializable = None
+        
+        return {
+            "heuristic": heuristic,
+            "solution": solution_serializable,
+            "stats": solver.stats,
+            "success": solution is not None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/visualizer-seance3")
+async def get_visualizer_seance3():
+    """Retourne le visualiseur HTML pour la Séance 3"""
+    try:
+        with open('/mnt/user-data/outputs/visualizer_seance3.html', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Visualiseur non trouvé")
+
 
 # ============================================================================
 # LANCEMENT

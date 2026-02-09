@@ -222,7 +222,10 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('graph')">Coloriage de Graphe</button>
             <button class="tab" onclick="switchTab('sudoku')">Sudoku</button>
-            <button class="tab" onclick="switchTab('sokoban')">Sokoban</button>
+            <button class="tab" onclick="switchTab('sokoban')">Sokoban SAT</button>
+            <button class="tab" onclick="switchTab('maze')">Labyrinthe</button>
+            <button class="tab" onclick="switchTab('sokorridor')">Sokorridor</button>
+            <button class="tab" onclick="switchTab('puzzle')">Taquin</button>
         </div>
         
         <!-- Coloriage de Graphe -->
@@ -267,7 +270,7 @@
                 <strong>Format JSON:</strong> {"initial_state": {"worker": 6, "boxes": [2, 9]}, "goals": [1, 10], "T": 15}
             </div>
             
-            <textarea id="sokobanInput">{"initial_state": {"worker": 6, "boxes": [2, 9]}, "goals": [1, 10], "T": 15, "num_cells": 11}</textarea>
+            <textarea id="sokobanInput">{"initial_state": {"worker": 5, "boxes": [2, 8]}, "goals": [1, 9], "T": 10, "num_cells": 11}</textarea>
             
             <button onclick="solveSokoban()">🎮 Résoudre et Animer</button>
             
@@ -277,6 +280,105 @@
             </div>
             
             <div class="result" id="sokobanResult"></div>
+        </div>
+        
+        <!-- Labyrinthe -->
+        <div id="maze" class="tab-content">
+            <div class="info">
+                <strong>Labyrinthe 4×4 - Séance 3</strong><br>
+                Recherche non informée : BFS, DFS, IDDFS<br>
+                Ordre des successeurs : haut, droite, bas, gauche
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Algorithme :</strong></label><br>
+                <label style="margin-right: 20px;"><input type="radio" name="mazeAlgo" value="bfs" checked> BFS (Largeur)</label>
+                <label style="margin-right: 20px;"><input type="radio" name="mazeAlgo" value="dfs"> DFS (Profondeur)</label>
+                <label><input type="radio" name="mazeAlgo" value="iddfs"> IDDFS (Itératif)</label>
+            </div>
+            
+            <button onclick="solveMaze()">🔍 Résoudre</button>
+            
+            <div class="loading" id="mazeLoading">
+                <div class="spinner"></div>
+                <p>Recherche en cours...</p>
+            </div>
+            
+            <div class="result" id="mazeResult"></div>
+        </div>
+        
+        <!-- Sokorridor -->
+        <div id="sokorridor" class="tab-content">
+            <div class="info">
+                <strong>Sokorridor (Sokoban 1D) - Séance 3</strong><br>
+                Configuration : ##. $ @ $.##<br>
+                Recherche non informée avec BFS ou IDDFS
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Worker (position 0-10):</strong></label>
+                <input type="number" id="sokWorker" value="5" min="0" max="10" style="width: 100px; padding: 8px; margin-left: 10px;">
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Boxes (séparées par virgules):</strong></label>
+                <input type="text" id="sokBoxes" value="2,8" style="width: 200px; padding: 8px; margin-left: 10px;">
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Goals (séparés par virgules):</strong></label>
+                <input type="text" id="sokGoals" value="1,9" style="width: 200px; padding: 8px; margin-left: 10px;">
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Algorithme :</strong></label><br>
+                <label style="margin-right: 20px;"><input type="radio" name="sokAlgo" value="bfs" checked> BFS</label>
+                <label><input type="radio" name="sokAlgo" value="iddfs"> IDDFS</label>
+            </div>
+            
+            <button onclick="solveSokorridor()">🔍 Résoudre</button>
+            
+            <div class="loading" id="sokorridorLoading">
+                <div class="spinner"></div>
+                <p>Recherche en cours...</p>
+            </div>
+            
+            <div class="result" id="sokorridorResult"></div>
+        </div>
+        
+        <!-- Taquin -->
+        <div id="puzzle" class="tab-content">
+            <div class="info">
+                <strong>Taquin (8-Puzzle) - Séance 3</strong><br>
+                Recherche informée avec A* et heuristiques<br>
+                0 = case vide
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>État initial (9 chiffres séparés par virgules):</strong></label><br>
+                <input type="text" id="puzzleInitial" value="5,8,7,4,0,3,6,2,1" style="width: 100%; padding: 10px; margin-top: 5px;">
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>État but:</strong></label><br>
+                <input type="text" id="puzzleGoal" value="1,2,3,4,5,6,7,8,0" style="width: 100%; padding: 10px; margin-top: 5px;">
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label><strong>Heuristique :</strong></label><br>
+                <label style="margin-right: 20px;"><input type="radio" name="puzzleHeur" value="manhattan" checked> Manhattan (recommandée)</label>
+                <label style="margin-right: 20px;"><input type="radio" name="puzzleHeur" value="misplaced"> Misplaced Tiles</label>
+                <label><input type="radio" name="puzzleHeur" value="euclidean"> Euclidean</label>
+            </div>
+            
+            <button onclick="solvePuzzle()">🔍 Résoudre avec A*</button>
+            
+            <div class="loading" id="puzzleLoading">
+                <div class="spinner"></div>
+                <p>Recherche avec A*...</p>
+            </div>
+            
+            <div class="result" id="puzzleResult"></div>
         </div>
     </div>
     
@@ -537,6 +639,181 @@
                 `;
                 console.error('Error:', error);
             }
+        }
+        
+        async function solveMaze() {
+            const algo = document.querySelector('input[name="mazeAlgo"]:checked').value;
+            const loading = document.getElementById('mazeLoading');
+            const result = document.getElementById('mazeResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const response = await fetch(`${API_URL}/maze/${algo}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.path) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <strong>✓ Solution trouvée en ${json.path.length - 1} étapes</strong>
+                        </div>
+                        
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nodes_explored}</div>
+                                <div class="stat-label">Nœuds explorés</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.nodes_generated}</div>
+                                <div class="stat-label">Nœuds générés</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.stats.max_frontier_size}</div>
+                                <div class="stat-label">Taille max frontière</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${json.algorithm.toUpperCase()}</div>
+                                <div class="stat-label">Algorithme</div>
+                            </div>
+                        </div>
+                        
+                        <h3>Chemin trouvé:</h3>
+                        <pre>${json.path.map(p => `(${p[0]},${p[1]})`).join(' → ')}</pre>
+                    `;
+                } else {
+                    result.innerHTML = `<div class="error"><strong>✗ Pas de solution trouvée</strong></div>`;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `<div class="error"><strong>Erreur:</strong><br>${error.message}</div>`;
+            }
+        }
+        
+        async function solveSokorridor() {
+            const algo = document.querySelector('input[name="sokAlgo"]:checked').value;
+            const worker = parseInt(document.getElementById('sokWorker').value);
+            const boxes = document.getElementById('sokBoxes').value.split(',').map(x => parseInt(x.trim()));
+            const goals = document.getElementById('sokGoals').value.split(',').map(x => parseInt(x.trim()));
+            
+            const loading = document.getElementById('sokorridorLoading');
+            const result = document.getElementById('sokorridorResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const response = await fetch(`${API_URL}/sokorridor/${algo}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({worker, boxes, goals})
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.solution) {
+                    const symbols = {'move_right': '→', 'move_left': '←', 'push_right': '⇒', 'push_left': '⇐'};
+                    const actions = json.solution.map(s => symbols[s[1]] || s[1]).join(' ');
+                    
+                    result.innerHTML = `
+                        <div class="success"><strong>✓ Solution trouvée en ${json.solution.length} étapes</strong></div>
+                        <div class="stats">
+                            <div class="stat-card"><div class="stat-value">${json.stats.nodes_explored}</div><div class="stat-label">Nœuds explorés</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.stats.nodes_generated}</div><div class="stat-label">Nœuds générés</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.solution.length}</div><div class="stat-label">Longueur plan</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.algorithm.toUpperCase()}</div><div class="stat-label">Algorithme</div></div>
+                        </div>
+                        <h3>Plan d'actions:</h3>
+                        <pre style="font-size: 1.2em;">${actions}</pre>
+                    `;
+                } else {
+                    result.innerHTML = `<div class="error"><strong>✗ Pas de solution trouvée</strong></div>`;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `<div class="error"><strong>Erreur:</strong><br>${error.message}</div>`;
+            }
+        }
+        
+        async function solvePuzzle() {
+            const heuristic = document.querySelector('input[name="puzzleHeur"]:checked').value;
+            const initial = document.getElementById('puzzleInitial').value.split(',').map(x => parseInt(x.trim()));
+            const goal = document.getElementById('puzzleGoal').value.split(',').map(x => parseInt(x.trim()));
+            
+            const initialGrid = [initial.slice(0,3), initial.slice(3,6), initial.slice(6,9)];
+            const goalGrid = [goal.slice(0,3), goal.slice(3,6), goal.slice(6,9)];
+            
+            const loading = document.getElementById('puzzleLoading');
+            const result = document.getElementById('puzzleResult');
+            
+            result.classList.remove('show');
+            loading.classList.add('show');
+            
+            try {
+                const response = await fetch(`${API_URL}/puzzle/${heuristic}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({initial: initialGrid, goal: goalGrid})
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const json = await response.json();
+                loading.classList.remove('show');
+                result.classList.add('show');
+                
+                if (json.solution) {
+                    const actions = json.solution.map(s => s[1]).join(' → ');
+                    
+                    result.innerHTML = `
+                        <div class="success"><strong>✓ Solution trouvée en ${json.solution.length} étapes</strong></div>
+                        <div class="stats">
+                            <div class="stat-card"><div class="stat-value">${json.stats.nodes_explored}</div><div class="stat-label">Nœuds explorés</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.stats.nodes_generated}</div><div class="stat-label">Nœuds générés</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.stats.max_frontier_size}</div><div class="stat-label">Taille max frontière</div></div>
+                            <div class="stat-card"><div class="stat-value">${json.heuristic}</div><div class="stat-label">Heuristique</div></div>
+                        </div>
+                        <h3>Plan d'actions:</h3>
+                        <pre style="font-size: 0.9em; max-height: 200px; overflow-y: auto;">${actions}</pre>
+                        <div style="display: flex; gap: 30px; justify-content: center; margin: 20px 0;">
+                            <div><h4>État Initial:</h4>${renderPuzzle(initialGrid)}</div>
+                            <div><h4>État But:</h4>${renderPuzzle(goalGrid)}</div>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `<div class="error"><strong>✗ Pas de solution trouvée</strong></div>`;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.innerHTML = `<div class="error"><strong>Erreur:</strong><br>${error.message}</div>`;
+            }
+        }
+        
+        function renderPuzzle(grid) {
+            let html = '<div style="display: inline-grid; grid-template-columns: repeat(3, 60px); gap: 2px; background: #333; padding: 10px; border-radius: 10px;">';
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const val = grid[r][c];
+                    const displayVal = val === 0 ? '∅' : val;
+                    html += `<div style="background: white; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; border-radius: 5px;">${displayVal}</div>`;
+                }
+            }
+            html += '</div>';
+            return html;
         }
     </script>
 </body>
