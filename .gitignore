@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+./build
+./dist  
+*.pyc
+*.pyo
+*.pyd   
+*.egg-info
+*.egg
+*.log
+*.bak
+*.swp
+.DS_Store
+.idea
+.vscode
+__pycache__
+*.ipynb_checkpoints
